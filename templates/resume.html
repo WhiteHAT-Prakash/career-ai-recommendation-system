@@ -1,0 +1,250 @@
+{% extends 'base.html' %}
+{% block title %}Resume Analyzer{% endblock %}
+{% block content %}
+<div class="page-content">
+    <div class="container">
+        <div class="page-header">
+            <h1>NLP <span class="gradient-text">Resume Analyzer</span></h1>
+            <p>Upload your resume for AI-powered skill extraction, scoring, and career matching.</p>
+        </div>
+
+        <div class="grid grid-2">
+            <div>
+                <div class="glass-card">
+                    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('resumeFile').click()">
+                        <div class="upload-icon">&#128196;</div>
+                        <h3>Upload Your Resume</h3>
+                        <p>Drag & drop or click to upload (PDF or DOCX)</p>
+                        <p class="text-muted mt-1" style="font-size:0.8rem;">Max 16MB</p>
+                    </div>
+                    <input type="file" id="resumeFile" accept=".pdf,.docx" style="display:none;" onchange="handleFileSelect(this)">
+                    <div id="fileName" class="text-muted mt-2" style="font-size:0.9rem;"></div>
+
+                    <div class="form-group mt-3">
+                        <label class="form-label">Target Career (Optional - for skill matching)</label>
+                        <select id="targetCareer" class="form-select">
+                            <option value="">Auto-detect from resume</option>
+                            <option value="Software Engineer">Software Engineer</option>
+                            <option value="Data Scientist">Data Scientist</option>
+                            <option value="Web Developer">Web Developer</option>
+                            <option value="Cybersecurity Analyst">Cybersecurity Analyst</option>
+                            <option value="Cloud Architect">Cloud Architect</option>
+                            <option value="DevOps Engineer">DevOps Engineer</option>
+                            <option value="Mobile App Developer">Mobile App Developer</option>
+                            <option value="AI/ML Engineer">AI/ML Engineer</option>
+                            <option value="Database Administrator">Database Administrator</option>
+                            <option value="UI/UX Designer">UI/UX Designer</option>
+                            <option value="Product Manager">Product Manager</option>
+                            <option value="QA Engineer">QA Engineer</option>
+                        </select>
+                    </div>
+
+                    <button class="btn btn-primary w-full mt-2" onclick="analyzeResume()" id="analyzeBtn" disabled>
+                        &#9881; Analyze Resume with NLP
+                    </button>
+                </div>
+
+                <div class="glass-card mt-3" id="nlpMethods" style="display:none;">
+                    <h4 style="margin-bottom:1rem;">NLP Methods Used</h4>
+                    <div id="nlpMethodsContent"></div>
+                </div>
+            </div>
+
+            <div id="analysisResults" style="display:none;">
+                <div class="glass-card text-center" id="scoreCard">
+                    <h4 style="margin-bottom:1rem;">Resume Strength Score</h4>
+                    <div class="score-circle" id="scoreCircle">
+                        <span id="scoreValue">0</span>
+                    </div>
+                    <p class="text-muted" id="scoreLabel">Analyzing...</p>
+                </div>
+
+                <div class="glass-card mt-3" id="skillsCard">
+                    <h4 style="margin-bottom:1rem;">Extracted Skills</h4>
+                    <div id="techSkillsList"></div>
+                    <h4 style="margin-top:1.5rem;margin-bottom:0.75rem;">Soft Skills</h4>
+                    <div id="softSkillsList"></div>
+                </div>
+
+                <div class="glass-card mt-3" id="matchCard" style="display:none;">
+                    <h4 style="margin-bottom:1rem;">Career Skill Match</h4>
+                    <div id="matchContent"></div>
+                </div>
+
+                <div class="glass-card mt-3" id="suggestionsCard">
+                    <h4 style="margin-bottom:1rem;">Improvement Suggestions</h4>
+                    <div id="suggestionsContent"></div>
+                </div>
+
+                <div class="glass-card mt-3" id="entitiesCard">
+                    <h4 style="margin-bottom:1rem;">Extracted Entities (NER)</h4>
+                    <div id="entitiesContent"></div>
+                </div>
+
+                <div class="glass-card mt-3" id="statsCard">
+                    <h4 style="margin-bottom:1rem;">Analysis Statistics</h4>
+                    <div id="statsContent"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const uploadZone = document.getElementById('uploadZone');
+let selectedFile = null;
+
+// Drag & drop
+uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+uploadZone.addEventListener('dragleave', () => { uploadZone.classList.remove('dragover'); });
+uploadZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadZone.classList.remove('dragover');
+    if (e.dataTransfer.files.length > 0) {
+        document.getElementById('resumeFile').files = e.dataTransfer.files;
+        handleFileSelect(document.getElementById('resumeFile'));
+    }
+});
+
+function handleFileSelect(input) {
+    if (input.files.length > 0) {
+        selectedFile = input.files[0];
+        document.getElementById('fileName').textContent = 'Selected: ' + selectedFile.name;
+        document.getElementById('analyzeBtn').disabled = false;
+    }
+}
+
+async function analyzeResume() {
+    if (!selectedFile) return;
+
+    showLoading('Analyzing resume with NLP pipeline...');
+
+    const formData = new FormData();
+    formData.append('resume', selectedFile);
+    const targetCareer = document.getElementById('targetCareer').value;
+    if (targetCareer) formData.append('target_career', targetCareer);
+
+    try {
+        const resp = await fetch('/api/resume/upload', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await resp.json();
+        hideLoading();
+
+        if (data.error) {
+            alert('Error: ' + data.error);
+            return;
+        }
+
+        displayResults(data);
+    } catch(e) {
+        hideLoading();
+        alert('Failed to analyze resume.');
+        console.error(e);
+    }
+}
+
+function displayResults(data) {
+    document.getElementById('analysisResults').style.display = '';
+
+    // Score
+    const score = data.resume_score || 0;
+    document.getElementById('scoreValue').textContent = score;
+    document.getElementById('scoreLabel').textContent =
+        score >= 80 ? 'Excellent Resume' :
+        score >= 60 ? 'Good Resume' :
+        score >= 40 ? 'Average - Needs Improvement' :
+        'Needs Significant Improvement';
+
+    // Tech skills
+    const techHtml = (data.skills?.technical || []).map(s =>
+        `<span class="job-skill-tag">${s}</span>`
+    ).join('') || '<span class="text-muted">No technical skills found</span>';
+    document.getElementById('techSkillsList').innerHTML = `<div class="flex flex-wrap gap-1">${techHtml}</div>`;
+
+    // Soft skills
+    const softHtml = (data.skills?.soft || []).map(s =>
+        `<span class="job-skill-tag" style="background:rgba(16,185,129,0.15);color:var(--success);">${s}</span>`
+    ).join('') || '<span class="text-muted">No soft skills found</span>';
+    document.getElementById('softSkillsList').innerHTML = `<div class="flex flex-wrap gap-1">${softHtml}</div>`;
+
+    // Career match
+    if (data.career_match) {
+        document.getElementById('matchCard').style.display = '';
+        const cm = data.career_match;
+        let matchHtml = `
+            <div class="flex justify-between items-center mb-2">
+                <span>Match Percentage</span>
+                <span class="confidence-value" style="font-size:1.5rem;">${cm.match_percentage}%</span>
+            </div>
+            <div class="confidence-bar mb-3">
+                <div class="confidence-fill" style="width:${cm.match_percentage}%;"></div>
+            </div>`;
+        if (cm.matched_skills?.length > 0) {
+            matchHtml += `<p style="font-size:0.85rem;margin-bottom:0.5rem;color:var(--success);">Matched Skills:</p>
+                <div class="flex flex-wrap gap-1 mb-2">${cm.matched_skills.map(s =>
+                    `<span class="badge badge-easy">${s}</span>`).join('')}</div>`;
+        }
+        if (cm.missing_skills?.length > 0) {
+            matchHtml += `<p style="font-size:0.85rem;margin-bottom:0.5rem;color:var(--danger);">Missing Skills:</p>
+                <div class="flex flex-wrap gap-1">${cm.missing_skills.map(s =>
+                    `<span class="badge badge-hard">${s}</span>`).join('')}</div>`;
+        }
+        document.getElementById('matchContent').innerHTML = matchHtml;
+    }
+
+    // Suggestions
+    const sugHtml = (data.suggestions || []).map(s => `
+        <div class="alert alert-${s.priority === 'high' ? 'error' : s.priority === 'medium' ? 'info' : 'success'}" style="margin-bottom:0.75rem;">
+            <span class="badge badge-${s.priority === 'high' ? 'hard' : s.priority === 'medium' ? 'medium' : 'easy'}">${s.priority}</span>
+            ${s.message}
+        </div>`
+    ).join('');
+    document.getElementById('suggestionsContent').innerHTML = sugHtml;
+
+    // Entities
+    if (data.entities) {
+        const ents = data.entities;
+        let entHtml = '';
+        if (ents.emails?.length) entHtml += `<p><strong>Email:</strong> ${ents.emails.join(', ')}</p>`;
+        if (ents.phones?.length) entHtml += `<p><strong>Phone:</strong> ${ents.phones.join(', ')}</p>`;
+        if (ents.names?.length) entHtml += `<p><strong>Names (NER):</strong> ${ents.names.join(', ')}</p>`;
+        if (ents.organizations?.length) entHtml += `<p><strong>Organizations (NER):</strong> ${ents.organizations.join(', ')}</p>`;
+        if (ents.locations?.length) entHtml += `<p><strong>Locations (NER):</strong> ${ents.locations.join(', ')}</p>`;
+        document.getElementById('entitiesContent').innerHTML = entHtml || '<p class="text-muted">No entities extracted.</p>';
+    }
+
+    // Stats
+    if (data.stats) {
+        document.getElementById('statsContent').innerHTML = `
+            <div class="grid grid-4">
+                <div class="text-center"><div style="font-size:1.5rem;font-weight:700;">${data.stats.word_count}</div><div class="text-muted" style="font-size:0.8rem;">Words</div></div>
+                <div class="text-center"><div style="font-size:1.5rem;font-weight:700;">${data.stats.unique_tokens}</div><div class="text-muted" style="font-size:0.8rem;">Unique Tokens</div></div>
+                <div class="text-center"><div style="font-size:1.5rem;font-weight:700;">${data.stats.tech_skills_found}</div><div class="text-muted" style="font-size:0.8rem;">Tech Skills</div></div>
+                <div class="text-center"><div style="font-size:1.5rem;font-weight:700;">${data.stats.soft_skills_found}</div><div class="text-muted" style="font-size:0.8rem;">Soft Skills</div></div>
+            </div>`;
+    }
+
+    // NLP methods used
+    if (data.nlp_methods) {
+        document.getElementById('nlpMethods').style.display = '';
+        const nm = data.nlp_methods;
+        document.getElementById('nlpMethodsContent').innerHTML = `
+            <div style="font-size:0.9rem;">
+                <p>${nm.spacy_ner ? '&#10003;' : '&#10007;'} spaCy Named Entity Recognition</p>
+                <p>${nm.nltk_tokenization ? '&#10003;' : '&#10007;'} NLTK Tokenization</p>
+                <p>${nm.lemmatization ? '&#10003;' : '&#10007;'} WordNet Lemmatization</p>
+            </div>`;
+    }
+
+    // Store for other pages
+    sessionStorage.setItem('resumeSkills', JSON.stringify(data.skills?.technical || []));
+    if (data.career_match?.missing_skills) {
+        sessionStorage.setItem('skillGaps', JSON.stringify(data.career_match.missing_skills));
+    }
+}
+</script>
+{% endblock %}

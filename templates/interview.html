@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+{% block title %}Interview Prep{% endblock %}
+{% block content %}
+<div class="page-content">
+    <div class="container">
+        <div class="page-header">
+            <h1>AI <span class="gradient-text">Interview Preparation</span></h1>
+            <p>Practice with personalized questions adapted to your career path and skills.</p>
+        </div>
+
+        <div class="glass-card mb-4">
+            <div class="grid grid-3">
+                <div class="form-group">
+                    <label class="form-label">Target Career</label>
+                    <select id="careerSelect" class="form-select">
+                        <option value="Software Engineer">Software Engineer</option>
+                        <option value="Data Scientist">Data Scientist</option>
+                        <option value="Web Developer">Web Developer</option>
+                        <option value="Cybersecurity Analyst">Cybersecurity Analyst</option>
+                        <option value="Cloud Architect">Cloud Architect</option>
+                        <option value="DevOps Engineer">DevOps Engineer</option>
+                        <option value="Mobile App Developer">Mobile App Developer</option>
+                        <option value="AI/ML Engineer">AI/ML Engineer</option>
+                        <option value="Database Administrator">Database Administrator</option>
+                        <option value="UI/UX Designer">UI/UX Designer</option>
+                        <option value="Product Manager">Product Manager</option>
+                        <option value="QA Engineer">QA Engineer</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Your Skills (comma separated)</label>
+                    <input type="text" id="userSkills" class="form-input" placeholder="e.g., Python, SQL, React">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Skill Gaps (comma separated)</label>
+                    <input type="text" id="skillGaps" class="form-input" placeholder="e.g., Docker, AWS">
+                </div>
+            </div>
+            <button class="btn btn-primary" onclick="generateQuestions()">&#9881; Generate Interview Questions</button>
+        </div>
+
+        <div id="questionsContainer" style="display:none;">
+            <div class="tabs" id="questionTabs">
+                <button class="tab-btn active" onclick="showTab('technical')">Technical</button>
+                <button class="tab-btn" onclick="showTab('hr')">HR / Behavioral</button>
+                <button class="tab-btn" onclick="showTab('scenario')">Scenario-Based</button>
+            </div>
+
+            <div class="tab-content active" id="tab-technical"></div>
+            <div class="tab-content" id="tab-hr"></div>
+            <div class="tab-content" id="tab-scenario"></div>
+
+            <div class="glass-card mt-3" id="questionStats"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const topCareer = sessionStorage.getItem('topCareer');
+    if (topCareer) {
+        document.getElementById('careerSelect').value = topCareer;
+    }
+    const skills = JSON.parse(sessionStorage.getItem('resumeSkills') || '[]');
+    if (skills.length) document.getElementById('userSkills').value = skills.join(', ');
+    const gaps = JSON.parse(sessionStorage.getItem('skillGaps') || '[]');
+    if (gaps.length) document.getElementById('skillGaps').value = gaps.join(', ');
+});
+
+function showTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    event.target.classList.add('active');
+    document.getElementById('tab-' + tab).classList.add('active');
+}
+
+async function generateQuestions() {
+    const career = document.getElementById('careerSelect').value;
+    const skills = document.getElementById('userSkills').value.split(',').map(s => s.trim()).filter(Boolean);
+    const gaps = document.getElementById('skillGaps').value.split(',').map(s => s.trim()).filter(Boolean);
+
+    showLoading('Generating personalized interview questions...');
+
+    try {
+        const resp = await fetch('/api/interview/questions', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ career, skills, skill_gaps: gaps })
+        });
+        const data = await resp.json();
+        hideLoading();
+
+        if (data.error) { alert(data.error); return; }
+        displayQuestions(data);
+    } catch(e) {
+        hideLoading();
+        alert('Failed to generate questions.');
+    }
+}
+
+function displayQuestions(data) {
+    document.getElementById('questionsContainer').style.display = '';
+
+    // Technical
+    let techHtml = '';
+    (data.technical || []).forEach((q, i) => {
+        const badgeClass = q.difficulty === 'easy' ? 'badge-easy' :
+                           q.difficulty === 'medium' ? 'badge-medium' : 'badge-hard';
+        let extraBadge = '';
+        if (q.is_gap_question) extraBadge = '<span class="badge badge-gap">Skill Gap</span>';
+        if (q.is_strength_question) extraBadge = '<span class="badge badge-strength">Your Strength</span>';
+
+        techHtml += `
+            <div class="question-card glass-card animate-in">
+                <div class="question-meta">
+                    <span class="badge ${badgeClass}">${q.difficulty}</span>
+                    <span class="badge badge-topic">${q.topic || 'General'}</span>
+                    ${extraBadge}
+                </div>
+                <div class="question-text">${i+1}. ${q.q}</div>
+            </div>`;
+    });
+    document.getElementById('tab-technical').innerHTML = techHtml || '<p class="text-muted">No technical questions generated.</p>';
+
+    // HR
+    let hrHtml = '';
+    (data.hr || []).forEach((q, i) => {
+        hrHtml += `
+            <div class="question-card glass-card animate-in">
+                <div class="question-meta">
+                    <span class="badge badge-hr">HR</span>
+                    <span class="badge badge-topic">${q.type || 'General'}</span>
+                </div>
+                <div class="question-text">${i+1}. ${q.q}</div>
+            </div>`;
+    });
+    document.getElementById('tab-hr').innerHTML = hrHtml || '<p class="text-muted">No HR questions generated.</p>';
+
+    // Scenario
+    let scenarioHtml = '';
+    (data.scenario || []).forEach((q, i) => {
+        scenarioHtml += `
+            <div class="question-card glass-card animate-in">
+                <div class="question-meta">
+                    <span class="badge badge-scenario">Scenario</span>
+                    <span class="badge badge-topic">${q.type || 'General'}</span>
+                </div>
+                <div class="question-text">${i+1}. ${q.q}</div>
+            </div>`;
+    });
+    document.getElementById('tab-scenario').innerHTML = scenarioHtml || '<p class="text-muted">No scenario questions generated.</p>';
+
+    // Stats
+    document.getElementById('questionStats').innerHTML = `
+        <div class="grid grid-4">
+            <div class="text-center">
+                <div style="font-size:1.5rem;font-weight:700;">${data.total_questions}</div>
+                <div class="text-muted" style="font-size:0.8rem;">Total Questions</div>
+            </div>
+            <div class="text-center">
+                <div style="font-size:1.5rem;font-weight:700;color:var(--success);">${data.difficulty_distribution?.easy || 0}</div>
+                <div class="text-muted" style="font-size:0.8rem;">Easy</div>
+            </div>
+            <div class="text-center">
+                <div style="font-size:1.5rem;font-weight:700;color:var(--warning);">${data.difficulty_distribution?.medium || 0}</div>
+                <div class="text-muted" style="font-size:0.8rem;">Medium</div>
+            </div>
+            <div class="text-center">
+                <div style="font-size:1.5rem;font-weight:700;color:var(--danger);">${data.difficulty_distribution?.hard || 0}</div>
+                <div class="text-muted" style="font-size:0.8rem;">Hard</div>
+            </div>
+        </div>
+        <p class="text-muted text-center mt-2" style="font-size:0.85rem;">
+            ${data.personalized ? 'Questions personalized based on your skills and gaps' : 'Provide skills for personalized questions'}
+        </p>`;
+}
+</script>
+{% endblock %}

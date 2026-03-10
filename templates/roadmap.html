@@ -1,0 +1,194 @@
+{% extends 'base.html' %}
+{% block title %}Career Roadmap{% endblock %}
+{% block content %}
+<div class="page-content">
+    <div class="container">
+        <div class="page-header">
+            <h1>Career <span class="gradient-text">Roadmap</span></h1>
+            <p>Personalized learning path from Beginner to Advanced, tailored to your profile.</p>
+        </div>
+
+        <div class="glass-card mb-4">
+            <div class="grid grid-3">
+                <div class="form-group">
+                    <label class="form-label">Target Career</label>
+                    <select id="rmCareer" class="form-select">
+                        <option value="Software Engineer">Software Engineer</option>
+                        <option value="Data Scientist">Data Scientist</option>
+                        <option value="Web Developer">Web Developer</option>
+                        <option value="Cybersecurity Analyst">Cybersecurity Analyst</option>
+                        <option value="Cloud Architect">Cloud Architect</option>
+                        <option value="DevOps Engineer">DevOps Engineer</option>
+                        <option value="Mobile App Developer">Mobile App Developer</option>
+                        <option value="AI/ML Engineer">AI/ML Engineer</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Your Current Skills (comma separated)</label>
+                    <input type="text" id="rmSkills" class="form-input" placeholder="e.g., Python, HTML, SQL">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Skills to Learn (comma separated)</label>
+                    <input type="text" id="rmGaps" class="form-input" placeholder="e.g., Docker, AWS, React">
+                </div>
+            </div>
+            <button class="btn btn-primary" onclick="generateRoadmap()">&#9656; Generate Personalized Roadmap</button>
+        </div>
+
+        <div id="roadmapContainer" style="display:none;">
+            <div class="glass-card mb-4" id="roadmapHeader"></div>
+            <div id="roadmapTimeline" class="roadmap-timeline"></div>
+            <div class="grid grid-2 mt-4">
+                <div class="glass-card" id="prioritySkillsCard" style="display:none;">
+                    <h4 style="margin-bottom:1rem;">Priority Skills to Learn</h4>
+                    <div id="prioritySkillsContent"></div>
+                </div>
+                <div class="glass-card" id="resourcesCard" style="display:none;">
+                    <h4 style="margin-bottom:1rem;">Learning Resources</h4>
+                    <div id="resourcesContent"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const topCareer = sessionStorage.getItem('topCareer');
+    if (topCareer) document.getElementById('rmCareer').value = topCareer;
+    const skills = JSON.parse(sessionStorage.getItem('resumeSkills') || '[]');
+    if (skills.length) document.getElementById('rmSkills').value = skills.join(', ');
+    const gaps = JSON.parse(sessionStorage.getItem('skillGaps') || '[]');
+    if (gaps.length) document.getElementById('rmGaps').value = gaps.join(', ');
+});
+
+async function generateRoadmap() {
+    const career = document.getElementById('rmCareer').value;
+    const skills = document.getElementById('rmSkills').value.split(',').map(s => s.trim()).filter(Boolean);
+    const gaps = document.getElementById('rmGaps').value.split(',').map(s => s.trim()).filter(Boolean);
+
+    showLoading('Generating personalized career roadmap...');
+
+    try {
+        const resp = await fetch('/api/roadmap', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ career, current_skills: skills, skill_gaps: gaps })
+        });
+        const data = await resp.json();
+        hideLoading();
+
+        if (data.error) { alert(data.error); return; }
+        displayRoadmap(data);
+    } catch(e) {
+        hideLoading();
+        alert('Failed to generate roadmap.');
+    }
+}
+
+function displayRoadmap(data) {
+    document.getElementById('roadmapContainer').style.display = '';
+
+    // Header
+    document.getElementById('roadmapHeader').innerHTML = `
+        <div class="flex justify-between items-center" style="flex-wrap:wrap;gap:1rem;">
+            <div>
+                <h3>${data.career}</h3>
+                <p class="text-muted">${data.description}</p>
+            </div>
+            <div class="text-center">
+                <div class="badge ${data.current_level === 'Beginner' ? 'badge-easy' :
+                    data.current_level === 'Intermediate' ? 'badge-medium' : 'badge-hard'}"
+                    style="font-size:0.9rem;padding:0.5rem 1rem;">
+                    Current Level: ${data.current_level}
+                </div>
+                ${data.personalized ? '<div class="text-muted mt-1" style="font-size:0.8rem;">Personalized</div>' : ''}
+            </div>
+        </div>`;
+
+    // Timeline
+    let timelineHtml = '';
+    (data.phases || []).forEach(phase => {
+        const skillsHtml = (phase.skills || []).map(s => {
+            if (typeof s === 'object') {
+                return `<li class="skill-item ${s.status}">
+                    <span class="skill-check">${s.status === 'completed' ? '&#10003;' : '&#9675;'}</span>
+                    ${s.name}
+                </li>`;
+            }
+            return `<li class="skill-item pending"><span class="skill-check">&#9675;</span> ${s}</li>`;
+        }).join('');
+
+        const toolsHtml = (phase.tools || []).map(t =>
+            `<span class="job-skill-tag">${t}</span>`
+        ).join('');
+
+        const certsHtml = (phase.certifications || []).map(c =>
+            `<span class="badge badge-topic" style="margin-bottom:0.3rem;">${c}</span>`
+        ).join(' ');
+
+        const projectsHtml = (phase.projects || []).map(p =>
+            `<span class="text-muted" style="font-size:0.85rem;">&#8226; ${p}</span>`
+        ).join('<br>');
+
+        timelineHtml += `
+            <div class="roadmap-phase glass-card animate-in">
+                <div class="phase-header">
+                    <div class="phase-title">${phase.phase}</div>
+                    <div class="phase-duration">${phase.duration}</div>
+                </div>
+                ${phase.completion !== undefined ? `
+                    <div class="phase-completion">
+                        <div class="phase-completion-fill" style="width:${phase.completion}%;"></div>
+                    </div>
+                    <p class="text-muted mb-2" style="font-size:0.8rem;">${phase.completion}% complete</p>
+                ` : ''}
+                <h4 style="font-size:0.9rem;margin-bottom:0.5rem;color:var(--text-secondary);">Skills</h4>
+                <ul class="skill-list mb-3">${skillsHtml}</ul>
+                <h4 style="font-size:0.9rem;margin-bottom:0.5rem;color:var(--text-secondary);">Tools</h4>
+                <div class="flex flex-wrap gap-1 mb-3">${toolsHtml}</div>
+                <h4 style="font-size:0.9rem;margin-bottom:0.5rem;color:var(--text-secondary);">Certifications</h4>
+                <div class="mb-3">${certsHtml}</div>
+                ${projectsHtml ? `
+                    <h4 style="font-size:0.9rem;margin-bottom:0.5rem;color:var(--text-secondary);">Projects</h4>
+                    <div>${projectsHtml}</div>
+                ` : ''}
+            </div>`;
+    });
+    document.getElementById('roadmapTimeline').innerHTML = timelineHtml;
+
+    // Priority skills
+    if (data.priority_skills && data.priority_skills.length > 0) {
+        document.getElementById('prioritySkillsCard').style.display = '';
+        let psHtml = '';
+        data.priority_skills.forEach(ps => {
+            psHtml += `
+                <div class="flex justify-between items-center" style="padding:0.5rem 0;border-bottom:1px solid var(--glass-border);">
+                    <div>
+                        <span style="font-weight:600;">${ps.skill}</span>
+                        <span class="badge badge-topic" style="margin-left:0.5rem;">${ps.category}</span>
+                    </div>
+                    <span class="badge ${ps.priority === 'high' ? 'badge-hard' : 'badge-medium'}">${ps.priority}</span>
+                </div>`;
+        });
+        document.getElementById('prioritySkillsContent').innerHTML = psHtml;
+    }
+
+    // Resources
+    if (data.resources && data.resources.length > 0) {
+        document.getElementById('resourcesCard').style.display = '';
+        let resHtml = '';
+        data.resources.forEach(r => {
+            resHtml += `
+                <div style="padding:0.5rem 0;border-bottom:1px solid var(--glass-border);">
+                    <a href="${r.url}" target="_blank" style="font-weight:600;">${r.name}</a>
+                    <span class="badge badge-topic" style="margin-left:0.5rem;">${r.type}</span>
+                </div>`;
+        });
+        document.getElementById('resourcesContent').innerHTML = resHtml;
+    }
+}
+</script>
+{% endblock %}

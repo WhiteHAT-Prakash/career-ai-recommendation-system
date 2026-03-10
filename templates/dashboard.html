@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="page-content">
+    <div class="container">
+        <div class="glass-card dashboard-welcome">
+            <h2>Welcome, <span class="gradient-text">{{ session.get('user_name', 'User') }}</span></h2>
+            <p class="text-muted">Your AI-powered career intelligence hub. Start with an assessment or explore the tools below.</p>
+        </div>
+
+        <div class="dashboard-cards">
+            <a href="{{ url_for('assessment') }}" class="glass-card dash-card animate-in">
+                <div class="card-icon icon-purple">&#9881;</div>
+                <h3>Career Assessment</h3>
+                <p>Take the AI-powered multi-step assessment to discover your ideal career path.</p>
+            </a>
+            <a href="{{ url_for('resume_page') }}" class="glass-card dash-card animate-in">
+                <div class="card-icon icon-blue">&#9997;</div>
+                <h3>Resume Analyzer</h3>
+                <p>Upload your resume for NLP-based skill extraction and career matching.</p>
+            </a>
+            <a href="{{ url_for('jobs') }}" class="glass-card dash-card animate-in">
+                <div class="card-icon icon-green">&#9733;</div>
+                <h3>Job Explorer</h3>
+                <p>Browse real-time job listings matched to your recommended career.</p>
+            </a>
+            <a href="{{ url_for('interview') }}" class="glass-card dash-card animate-in">
+                <div class="card-icon icon-orange">&#10004;</div>
+                <h3>Interview Prep</h3>
+                <p>Practice with AI-generated questions tailored to your career path.</p>
+            </a>
+            <a href="{{ url_for('roadmap') }}" class="glass-card dash-card animate-in">
+                <div class="card-icon icon-pink">&#9656;</div>
+                <h3>Career Roadmap</h3>
+                <p>Follow a personalized learning path from beginner to advanced.</p>
+            </a>
+            <div class="glass-card dash-card animate-in" id="historyCard" onclick="loadHistory()">
+                <div class="card-icon icon-red">&#9201;</div>
+                <h3>Prediction History</h3>
+                <p>View your past career predictions and track your growth.</p>
+            </div>
+        </div>
+
+        <div class="glass-card hidden" id="historySection">
+            <h3 style="margin-bottom:1rem;">Recent Predictions</h3>
+            <div id="historyContent">
+                <p class="text-muted">Loading...</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadHistory() {
+    const section = document.getElementById('historySection');
+    const content = document.getElementById('historyContent');
+    section.classList.toggle('hidden');
+
+    if (!section.classList.contains('hidden')) {
+        try {
+            const resp = await fetch('/api/user/history');
+            const data = await resp.json();
+            if (data.length === 0) {
+                content.innerHTML = '<p class="text-muted">No predictions yet. Take an assessment to get started.</p>';
+                return;
+            }
+            let html = '<div class="grid grid-2">';
+            data.slice(0, 6).forEach(pred => {
+                const top = pred.result?.predictions?.[0];
+                html += `
+                    <div class="glass-card" style="padding:1rem;">
+                        <div style="font-weight:600;">${top?.career || 'N/A'}</div>
+                        <div class="text-muted" style="font-size:0.85rem;">Confidence: ${top?.confidence || 0}%</div>
+                        <div class="text-muted" style="font-size:0.8rem;">${new Date(pred.timestamp).toLocaleDateString()}</div>
+                    </div>`;
+            });
+            html += '</div>';
+            content.innerHTML = html;
+        } catch(e) {
+            content.innerHTML = '<p class="text-danger">Failed to load history.</p>';
+        }
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}CareerAI{% endblock %} | AI Career Platform</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block head %}{% endblock %}
+</head>
+<body>
+    {% if session.get('user_id') %}
+    <nav class="navbar">
+        <a href="{{ url_for('dashboard') }}" class="nav-brand">
+            <div class="logo-icon">&#9670;</div>
+            <span>CareerAI</span>
+        </a>
+        <ul class="nav-links" id="navLinks">
+            <li><a href="{{ url_for('dashboard') }}" class="{% if request.endpoint == 'dashboard' %}active{% endif %}">Dashboard</a></li>
+            <li><a href="{{ url_for('assessment') }}" class="{% if request.endpoint == 'assessment' %}active{% endif %}">Assessment</a></li>
+            <li><a href="{{ url_for('resume_page') }}" class="{% if request.endpoint == 'resume_page' %}active{% endif %}">Resume</a></li>
+            <li><a href="{{ url_for('jobs') }}" class="{% if request.endpoint == 'jobs' %}active{% endif %}">Jobs</a></li>
+            <li><a href="{{ url_for('interview') }}" class="{% if request.endpoint == 'interview' %}active{% endif %}">Interview</a></li>
+            <li><a href="{{ url_for('roadmap') }}" class="{% if request.endpoint == 'roadmap' %}active{% endif %}">Roadmap</a></li>
+        </ul>
+        <div class="nav-user">
+            <span class="user-name">{{ session.get('user_name', 'User') }}</span>
+            <a href="{{ url_for('logout') }}" class="btn btn-sm btn-secondary">Logout</a>
+        </div>
+        <button class="nav-hamburger" onclick="document.getElementById('navLinks').classList.toggle('open')">&#9776;</button>
+    </nav>
+    {% endif %}
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div style="position:fixed;top:70px;right:20px;z-index:9999;max-width:400px;">
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}" onclick="this.remove()">
+            {% if category == 'success' %}&#10003;{% elif category == 'error' %}&#10007;{% else %}&#9432;{% endif %}
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text" id="loadingText">Processing...</div>
+    </div>
+
+    {% block content %}{% endblock %}
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

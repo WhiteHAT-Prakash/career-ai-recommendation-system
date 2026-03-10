@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CareerAI - AI-Powered Career Intelligence</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="nav-brand">
+            <div class="logo-icon">&#9670;</div>
+            <span>CareerAI</span>
+        </a>
+        <div class="nav-user">
+            <a href="{{ url_for('login') }}" class="btn btn-sm btn-secondary">Login</a>
+            <a href="{{ url_for('register') }}" class="btn btn-sm btn-primary">Get Started</a>
+        </div>
+    </nav>
+
+    <section class="hero">
+        <div class="hero-content">
+            <h1>Your <span class="gradient-text">AI-Powered</span> Career Intelligence Platform</h1>
+            <p>Get data-driven career recommendations powered by Machine Learning, NLP resume analysis, and real-time job market intelligence.</p>
+            <div class="hero-buttons">
+                <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg">Start Free Assessment</a>
+                <a href="#features" class="btn btn-secondary btn-lg">Learn More</a>
+            </div>
+            <div class="hero-stats">
+                <div class="stat-item">
+                    <div class="stat-number">20+</div>
+                    <div class="stat-label">Career Paths</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">93%</div>
+                    <div class="stat-label">Prediction Accuracy</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">Real-time</div>
+                    <div class="stat-label">Job Market Data</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">NLP</div>
+                    <div class="stat-label">Resume Analysis</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="features-section container" id="features">
+        <h2 class="text-center">Platform <span class="gradient-text">Features</span></h2>
+        <div class="grid grid-3">
+            <div class="glass-card feature-card animate-in">
+                <div class="feature-icon">&#9881;</div>
+                <h3>ML Career Engine</h3>
+                <p>Decision Tree, KNN, and Ensemble models trained on real career-skill mappings to predict your ideal career path.</p>
+            </div>
+            <div class="glass-card feature-card animate-in">
+                <div class="feature-icon">&#9997;</div>
+                <h3>NLP Resume Analyzer</h3>
+                <p>Upload your resume for AI-powered analysis using spaCy NER, NLTK tokenization, and skill extraction.</p>
+            </div>
+            <div class="glass-card feature-card animate-in">
+                <div class="feature-icon">&#9733;</div>
+                <h3>Live Job Intelligence</h3>
+                <p>Real-time job listings from public APIs, filtered by your recommended career and location.</p>
+            </div>
+            <div class="glass-card feature-card animate-in">
+                <div class="feature-icon">&#9672;</div>
+                <h3>Smart Assessment</h3>
+                <p>Multi-step dynamic quiz covering academics, skills, aptitude, and preferences with feature engineering.</p>
+            </div>
+            <div class="glass-card feature-card animate-in">
+                <div class="feature-icon">&#10004;</div>
+                <h3>Interview Preparation</h3>
+                <p>Adaptive interview questions generated based on your career path, skills, and identified gaps.</p>
+            </div>
+            <div class="glass-card feature-card animate-in">
+                <div class="feature-icon">&#9656;</div>
+                <h3>Career Roadmap</h3>
+                <p>Personalized learning path from Beginner to Advanced with skills, certifications, and tools.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="container" style="padding: 4rem 2rem;">
+        <div class="glass-card text-center" style="padding: 3rem;">
+            <h2 style="margin-bottom: 1rem;">How It Works</h2>
+            <p style="color: var(--text-secondary); max-width: 600px; margin: 0 auto 2rem;">Our AI pipeline processes your data through multiple stages to deliver accurate, personalized career recommendations.</p>
+            <div class="grid grid-4">
+                <div class="animate-in">
+                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">1</div>
+                    <h4>Take Assessment</h4>
+                    <p class="text-muted" style="font-size:0.85rem;">Complete the multi-step career quiz</p>
+                </div>
+                <div class="animate-in">
+                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">2</div>
+                    <h4>AI Processing</h4>
+                    <p class="text-muted" style="font-size:0.85rem;">ML models analyze your profile</p>
+                </div>
+                <div class="animate-in">
+                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">3</div>
+                    <h4>Get Results</h4>
+                    <p class="text-muted" style="font-size:0.85rem;">Top 3 careers with confidence scores</p>
+                </div>
+                <div class="animate-in">
+                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">4</div>
+                    <h4>Take Action</h4>
+                    <p class="text-muted" style="font-size:0.85rem;">Follow roadmap, find jobs, prepare</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <p>AI-Driven Smart Career Recommendation & Talent Intelligence Platform</p>
+        <p style="margin-top: 0.5rem;">Built with Flask, scikit-learn, spaCy & NLTK</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

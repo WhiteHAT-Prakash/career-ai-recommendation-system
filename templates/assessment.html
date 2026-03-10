@@ -1,0 +1,318 @@
+{% extends 'base.html' %}
+{% block title %}Career Assessment{% endblock %}
+{% block content %}
+<div class="page-content">
+    <div class="container">
+        <div class="page-header">
+            <h1>Career <span class="gradient-text">Assessment</span></h1>
+            <p>Complete all steps for an accurate AI-powered career recommendation.</p>
+        </div>
+
+        <div class="assessment-steps" id="stepIndicators">
+            <div class="step-indicator active" data-step="1"><span class="step-number">1</span> Academics</div>
+            <div class="step-indicator" data-step="2"><span class="step-number">2</span> Technical Skills</div>
+            <div class="step-indicator" data-step="3"><span class="step-number">3</span> Soft Skills</div>
+            <div class="step-indicator" data-step="4"><span class="step-number">4</span> Interests</div>
+            <div class="step-indicator" data-step="5"><span class="step-number">5</span> Aptitude</div>
+            <div class="step-indicator" data-step="6"><span class="step-number">6</span> Preferences</div>
+        </div>
+
+        <form id="assessmentForm" onsubmit="return false;">
+            <!-- Step 1: Academics -->
+            <div class="assessment-step active glass-card" id="step1">
+                <h3 style="margin-bottom:1.5rem;">Academic Background</h3>
+                <div class="grid grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Degree</label>
+                        <select name="degree" class="form-select" required>
+                            <option value="">Select your degree</option>
+                            {% for d in degrees %}
+                            <option value="{{ d }}">{{ d }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Stream / Branch</label>
+                        <select name="stream" class="form-select" required>
+                            <option value="">Select your stream</option>
+                            {% for s in streams %}
+                            <option value="{{ s }}">{{ s }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">CGPA (out of 10)</label>
+                    <input type="number" name="cgpa" class="form-input" min="0" max="10" step="0.1" placeholder="e.g., 8.5" required>
+                </div>
+                <div class="step-nav">
+                    <div></div>
+                    <button class="btn btn-primary" onclick="nextStep(2)">Next: Technical Skills &#8594;</button>
+                </div>
+            </div>
+
+            <!-- Step 2: Technical Skills -->
+            <div class="assessment-step glass-card" id="step2">
+                <h3 style="margin-bottom:0.5rem;">Technical Skills</h3>
+                <p class="text-muted mb-3" style="font-size:0.9rem;">Select all skills you are proficient in.</p>
+                <div class="chip-container" id="techSkillsContainer">
+                    {% for skill in tech_skills %}
+                    <label class="chip" onclick="this.classList.toggle('active')">
+                        <input type="checkbox" name="tech_skills" value="{{ skill }}">
+                        {{ skill }}
+                    </label>
+                    {% endfor %}
+                </div>
+                <div class="step-nav">
+                    <button class="btn btn-secondary" onclick="prevStep(1)">&#8592; Back</button>
+                    <button class="btn btn-primary" onclick="nextStep(3)">Next: Soft Skills &#8594;</button>
+                </div>
+            </div>
+
+            <!-- Step 3: Soft Skills -->
+            <div class="assessment-step glass-card" id="step3">
+                <h3 style="margin-bottom:0.5rem;">Soft Skills</h3>
+                <p class="text-muted mb-3" style="font-size:0.9rem;">Select your strongest soft skills.</p>
+                <div class="chip-container" id="softSkillsContainer">
+                    {% for skill in soft_skills %}
+                    <label class="chip" onclick="this.classList.toggle('active')">
+                        <input type="checkbox" name="soft_skills" value="{{ skill }}">
+                        {{ skill }}
+                    </label>
+                    {% endfor %}
+                </div>
+                <div class="step-nav">
+                    <button class="btn btn-secondary" onclick="prevStep(2)">&#8592; Back</button>
+                    <button class="btn btn-primary" onclick="nextStep(4)">Next: Interests &#8594;</button>
+                </div>
+            </div>
+
+            <!-- Step 4: Interests -->
+            <div class="assessment-step glass-card" id="step4">
+                <h3 style="margin-bottom:0.5rem;">Career Interests</h3>
+                <p class="text-muted mb-3" style="font-size:0.9rem;">What areas interest you the most?</p>
+                <div class="chip-container" id="interestsContainer">
+                    {% for interest in interests %}
+                    <label class="chip" onclick="this.classList.toggle('active')">
+                        <input type="checkbox" name="interests" value="{{ interest }}">
+                        {{ interest }}
+                    </label>
+                    {% endfor %}
+                </div>
+                <div class="step-nav">
+                    <button class="btn btn-secondary" onclick="prevStep(3)">&#8592; Back</button>
+                    <button class="btn btn-primary" onclick="nextStep(5)">Next: Aptitude &#8594;</button>
+                </div>
+            </div>
+
+            <!-- Step 5: Aptitude -->
+            <div class="assessment-step glass-card" id="step5">
+                <h3 style="margin-bottom:1.5rem;">Aptitude Questions</h3>
+                <div class="form-group">
+                    <label class="form-label">1. What is the output of: print(type([])) in Python?</label>
+                    <select name="q1" class="form-select">
+                        <option value="0">Select answer</option>
+                        <option value="10">&lt;class 'list'&gt;</option>
+                        <option value="0">&lt;class 'tuple'&gt;</option>
+                        <option value="0">&lt;class 'dict'&gt;</option>
+                        <option value="0">Error</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">2. Which data structure uses FIFO (First In, First Out)?</label>
+                    <select name="q2" class="form-select">
+                        <option value="0">Select answer</option>
+                        <option value="0">Stack</option>
+                        <option value="10">Queue</option>
+                        <option value="0">Tree</option>
+                        <option value="0">Graph</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">3. What does SQL stand for?</label>
+                    <select name="q3" class="form-select">
+                        <option value="0">Select answer</option>
+                        <option value="10">Structured Query Language</option>
+                        <option value="0">Simple Query Language</option>
+                        <option value="0">Standard Query Logic</option>
+                        <option value="0">System Query Language</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">4. Big O notation for binary search is:</label>
+                    <select name="q4" class="form-select">
+                        <option value="0">Select answer</option>
+                        <option value="0">O(n)</option>
+                        <option value="10">O(log n)</option>
+                        <option value="0">O(n^2)</option>
+                        <option value="0">O(1)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">5. Which protocol is used for secure web browsing?</label>
+                    <select name="q5" class="form-select">
+                        <option value="0">Select answer</option>
+                        <option value="0">HTTP</option>
+                        <option value="10">HTTPS</option>
+                        <option value="0">FTP</option>
+                        <option value="0">SMTP</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">6. Which is NOT a programming paradigm?</label>
+                    <select name="q6" class="form-select">
+                        <option value="0">Select answer</option>
+                        <option value="0">Object-Oriented</option>
+                        <option value="0">Functional</option>
+                        <option value="10">Relational</option>
+                        <option value="0">Procedural</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">7. In networking, what does DNS resolve?</label>
+                    <select name="q7" class="form-select">
+                        <option value="0">Select answer</option>
+                        <option value="10">Domain names to IP addresses</option>
+                        <option value="0">IP addresses to MAC addresses</option>
+                        <option value="0">Ports to protocols</option>
+                        <option value="0">URLs to file paths</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">8. Which design pattern ensures only one instance of a class?</label>
+                    <select name="q8" class="form-select">
+                        <option value="0">Select answer</option>
+                        <option value="10">Singleton</option>
+                        <option value="0">Factory</option>
+                        <option value="0">Observer</option>
+                        <option value="0">Strategy</option>
+                    </select>
+                </div>
+                <div class="step-nav">
+                    <button class="btn btn-secondary" onclick="prevStep(4)">&#8592; Back</button>
+                    <button class="btn btn-primary" onclick="nextStep(6)">Next: Preferences &#8594;</button>
+                </div>
+            </div>
+
+            <!-- Step 6: Preferences -->
+            <div class="assessment-step glass-card" id="step6">
+                <h3 style="margin-bottom:1.5rem;">Work Preferences</h3>
+                <div class="form-group">
+                    <label class="form-label">Preferred Work Environment</label>
+                    <select name="work_preference" class="form-select" required>
+                        <option value="">Select preference</option>
+                        {% for wp in work_prefs %}
+                        <option value="{{ wp }}">{{ wp }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="step-nav">
+                    <button class="btn btn-secondary" onclick="prevStep(5)">&#8592; Back</button>
+                    <button class="btn btn-primary btn-lg" onclick="submitAssessment()">
+                        &#9881; Get AI Career Recommendation
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentStep = 1;
+
+function showStep(step) {
+    document.querySelectorAll('.assessment-step').forEach(el => el.classList.remove('active'));
+    document.getElementById('step' + step).classList.add('active');
+
+    document.querySelectorAll('.step-indicator').forEach(el => {
+        const s = parseInt(el.dataset.step);
+        el.classList.remove('active', 'completed');
+        if (s === step) el.classList.add('active');
+        else if (s < step) el.classList.add('completed');
+    });
+    currentStep = step;
+}
+
+function nextStep(step) { showStep(step); }
+function prevStep(step) { showStep(step); }
+
+async function submitAssessment() {
+    const form = document.getElementById('assessmentForm');
+
+    // Gather data
+    const data = {
+        degree: form.querySelector('[name="degree"]').value,
+        stream: form.querySelector('[name="stream"]').value,
+        cgpa: parseFloat(form.querySelector('[name="cgpa"]').value) || 7.0,
+        work_preference: form.querySelector('[name="work_preference"]').value,
+        tech_skills: [],
+        soft_skills: [],
+        interests: [],
+        aptitude_score: 0
+    };
+
+    // Tech skills
+    form.querySelectorAll('[name="tech_skills"]:checked').forEach(el => {
+        data.tech_skills.push(el.value);
+    });
+
+    // Soft skills
+    form.querySelectorAll('[name="soft_skills"]:checked').forEach(el => {
+        data.soft_skills.push(el.value);
+    });
+
+    // Interests
+    form.querySelectorAll('[name="interests"]:checked').forEach(el => {
+        data.interests.push(el.value);
+    });
+
+    // Aptitude score
+    let aptitude = 0;
+    for (let i = 1; i <= 8; i++) {
+        const sel = form.querySelector(`[name="q${i}"]`);
+        if (sel) aptitude += parseInt(sel.value) || 0;
+    }
+    data.aptitude_score = aptitude;
+
+    // Validate
+    if (!data.degree || !data.stream) {
+        alert('Please complete all required fields.');
+        showStep(1);
+        return;
+    }
+    if (data.tech_skills.length === 0) {
+        alert('Please select at least one technical skill.');
+        showStep(2);
+        return;
+    }
+
+    showLoading('Analyzing your profile with AI models...');
+
+    try {
+        const resp = await fetch('/api/predict', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+        const result = await resp.json();
+
+        if (result.error) {
+            hideLoading();
+            alert('Error: ' + result.error);
+            return;
+        }
+
+        // Store and redirect
+        sessionStorage.setItem('careerResult', JSON.stringify(result));
+        sessionStorage.setItem('assessmentData', JSON.stringify(data));
+        window.location.href = '/results';
+    } catch(e) {
+        hideLoading();
+        alert('Failed to get prediction. Please try again.');
+        console.error(e);
+    }
+}
+</script>
+{% endblock %}

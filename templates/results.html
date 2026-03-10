@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+{% block title %}Career Results{% endblock %}
+{% block content %}
+<div class="page-content">
+    <div class="container">
+        <div class="page-header">
+            <h1>Your <span class="gradient-text">Career Recommendations</span></h1>
+            <p>AI-powered predictions based on your assessment profile.</p>
+        </div>
+
+        <div id="resultsContainer">
+            <p class="text-muted">Loading results...</p>
+        </div>
+
+        <div class="grid grid-2 mt-4" id="extraSections" style="display:none;">
+            <div class="glass-card">
+                <h3 style="margin-bottom:1rem;">Model Comparison</h3>
+                <div id="modelComparison"></div>
+            </div>
+            <div class="glass-card">
+                <h3 style="margin-bottom:1rem;">Key Factors</h3>
+                <div id="featureImportance"></div>
+            </div>
+        </div>
+
+        <div class="glass-card mt-4" id="metricsSection" style="display:none;">
+            <h3 style="margin-bottom:1rem;">Model Performance Metrics</h3>
+            <div id="metricsContent"></div>
+        </div>
+
+        <div class="flex gap-2 mt-4" style="flex-wrap:wrap;">
+            <a href="/assessment" class="btn btn-secondary">&#8592; Retake Assessment</a>
+            <a href="/jobs" class="btn btn-primary" id="exploreJobsBtn" style="display:none;">Explore Jobs &#8594;</a>
+            <a href="/interview" class="btn btn-outline" id="interviewBtn" style="display:none;">Interview Prep &#8594;</a>
+            <a href="/roadmap" class="btn btn-outline" id="roadmapBtn" style="display:none;">View Roadmap &#8594;</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    const result = JSON.parse(sessionStorage.getItem('careerResult') || 'null');
+    const container = document.getElementById('resultsContainer');
+
+    if (!result || !result.predictions) {
+        container.innerHTML = `
+            <div class="glass-card text-center" style="padding:3rem;">
+                <h3>No Results Found</h3>
+                <p class="text-muted mt-2">Please take the career assessment first.</p>
+                <a href="/assessment" class="btn btn-primary mt-3">Take Assessment</a>
+            </div>`;
+        return;
+    }
+
+    // Render predictions
+    let html = '';
+    result.predictions.forEach((pred, i) => {
+        html += `
+            <div class="result-card glass-card ${i === 0 ? 'top-pick' : ''} animate-in">
+                <div class="flex justify-between items-center" style="flex-wrap:wrap;gap:1rem;">
+                    <div>
+                        <div class="result-career">${pred.career}</div>
+                        <div class="confidence-label">
+                            Confidence: <span class="confidence-value">${pred.confidence}%</span>
+                        </div>
+                    </div>
+                    <div style="font-size:2.5rem;font-weight:800;opacity:0.15;">#${i+1}</div>
+                </div>
+                <div class="confidence-bar">
+                    <div class="confidence-fill" style="width:0%;" data-width="${pred.confidence}%"></div>
+                </div>
+            </div>`;
+    });
+    container.innerHTML = html;
+
+    // Animate confidence bars
+    setTimeout(() => {
+        document.querySelectorAll('.confidence-fill').forEach(bar => {
+            bar.style.width = bar.dataset.width;
+        });
+    }, 100);
+
+    // Model comparison
+    if (result.model_comparison) {
+        const mc = result.model_comparison;
+        document.getElementById('modelComparison').innerHTML = `
+            <table class="metrics-table">
+                <tr><th>Model</th><th>Prediction</th></tr>
+                <tr><td>Decision Tree</td><td>${mc.decision_tree}</td></tr>
+                <tr><td>KNN</td><td>${mc.knn}</td></tr>
+                <tr><td>Ensemble (Final)</td><td><strong>${mc.ensemble}</strong></td></tr>
+            </table>`;
+    }
+
+    // Feature importance
+    if (result.feature_importance && result.feature_importance.length > 0) {
+        let fiHtml = '<div>';
+        result.feature_importance.forEach(f => {
+            const name = f.feature.replace(/tech_|soft_|interest_/g, '').replace(/_/g, ' ');
+            fiHtml += `
+                <div style="margin-bottom:0.75rem;">
+                    <div class="flex justify-between" style="font-size:0.9rem;">
+                        <span>${name}</span><span class="text-muted">${f.importance}%</span>
+                    </div>
+                    <div class="confidence-bar" style="height:4px;">
+                        <div class="confidence-fill" style="width:${f.importance}%;"></div>
+                    </div>
+                </div>`;
+        });
+        fiHtml += '</div>';
+        document.getElementById('featureImportance').innerHTML = fiHtml;
+    }
+
+    document.getElementById('extraSections').style.display = '';
+
+    // Store top career for other pages
+    const topCareer = result.predictions[0].career;
+    sessionStorage.setItem('topCareer', topCareer);
+    document.getElementById('exploreJobsBtn').style.display = '';
+    document.getElementById('interviewBtn').style.display = '';
+    document.getElementById('roadmapBtn').style.display = '';
+
+    // Load model metrics
+    try {
+        const mResp = await fetch('/api/model-metrics');
+        const metrics = await mResp.json();
+        if (metrics && !metrics.error) {
+            document.getElementById('metricsSection').style.display = '';
+            document.getElementById('metricsContent').innerHTML = `
+                <table class="metrics-table">
+                    <tr>
+                        <th>Model</th><th>Accuracy</th><th>Precision</th><th>Recall</th>
+                    </tr>
+                    <tr>
+                        <td>Decision Tree</td>
+                        <td>${metrics.decision_tree?.accuracy}%</td>
+                        <td>${metrics.decision_tree?.precision}%</td>
+                        <td>${metrics.decision_tree?.recall}%</td>
+                    </tr>
+                    <tr>
+                        <td>KNN</td>
+                        <td>${metrics.knn?.accuracy}%</td>
+                        <td>${metrics.knn?.precision}%</td>
+                        <td>${metrics.knn?.recall}%</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Ensemble</strong></td>
+                        <td><strong>${metrics.ensemble?.accuracy}%</strong></td>
+                        <td><strong>${metrics.ensemble?.precision}%</strong></td>
+                        <td><strong>${metrics.ensemble?.recall}%</strong></td>
+                    </tr>
+                </table>`;
+        }
+    } catch(e) { console.log('Could not load metrics'); }
+});
+</script>
+{% endblock %}

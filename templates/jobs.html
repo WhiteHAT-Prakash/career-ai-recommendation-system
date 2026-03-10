@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+{% block title %}Job Explorer{% endblock %}
+{% block content %}
+<div class="page-content">
+    <div class="container">
+        <div class="page-header">
+            <h1>Job <span class="gradient-text">Explorer</span></h1>
+            <p>Real-time job listings and market intelligence for your career.</p>
+        </div>
+
+        <div class="glass-card mb-4">
+            <div class="grid grid-3">
+                <div class="form-group">
+                    <label class="form-label">Career</label>
+                    <select id="jobCareer" class="form-select">
+                        <option value="Software Engineer">Software Engineer</option>
+                        <option value="Data Scientist">Data Scientist</option>
+                        <option value="Web Developer">Web Developer</option>
+                        <option value="Cybersecurity Analyst">Cybersecurity Analyst</option>
+                        <option value="Cloud Architect">Cloud Architect</option>
+                        <option value="DevOps Engineer">DevOps Engineer</option>
+                        <option value="Mobile App Developer">Mobile App Developer</option>
+                        <option value="AI/ML Engineer">AI/ML Engineer</option>
+                        <option value="Database Administrator">Database Administrator</option>
+                        <option value="UI/UX Designer">UI/UX Designer</option>
+                        <option value="Product Manager">Product Manager</option>
+                        <option value="QA Engineer">QA Engineer</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Location</label>
+                    <select id="jobLocation" class="form-select">
+                        <option value="us">United States</option>
+                        <option value="india">India</option>
+                        <option value="gb">United Kingdom</option>
+                    </select>
+                </div>
+                <div class="form-group" style="display:flex;align-items:flex-end;">
+                    <button class="btn btn-primary w-full" onclick="searchJobs()">&#9733; Search Jobs</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-2 mb-4" id="insightsSection" style="display:none;">
+            <div class="glass-card" id="insightsCard">
+                <h4 style="margin-bottom:1rem;">Market Insights</h4>
+                <div id="insightsContent"></div>
+            </div>
+            <div class="glass-card">
+                <h4 style="margin-bottom:1rem;">Salary Range</h4>
+                <div id="salaryContent"></div>
+            </div>
+        </div>
+
+        <div id="jobsContainer">
+            <p class="text-muted text-center">Select a career and search for jobs.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const topCareer = sessionStorage.getItem('topCareer');
+    if (topCareer) {
+        document.getElementById('jobCareer').value = topCareer;
+    }
+});
+
+async function searchJobs() {
+    const career = document.getElementById('jobCareer').value;
+    const location = document.getElementById('jobLocation').value;
+
+    showLoading('Fetching job listings...');
+
+    try {
+        const [jobResp, insightResp] = await Promise.all([
+            fetch(`/api/jobs?career=${encodeURIComponent(career)}&location=${location}`),
+            fetch(`/api/jobs/insights?career=${encodeURIComponent(career)}`)
+        ]);
+        const jobData = await jobResp.json();
+        const insights = await insightResp.json();
+        hideLoading();
+
+        displayInsights(insights);
+        displayJobs(jobData);
+    } catch(e) {
+        hideLoading();
+        alert('Failed to fetch jobs.');
+    }
+}
+
+function displayInsights(insights) {
+    document.getElementById('insightsSection').style.display = '';
+
+    document.getElementById('insightsContent').innerHTML = `
+        <div style="font-size:0.9rem;">
+            <p><strong>Demand Level:</strong> <span class="text-success">${insights.demand_level}</span></p>
+            <p><strong>Growth Trend:</strong> ${insights.growth_trend}</p>
+            <p><strong>Remote Friendly:</strong> ${insights.remote_friendly ? 'Yes' : 'No'}</p>
+            <p style="margin-top:0.75rem;"><strong>Top Skills:</strong></p>
+            <div class="flex flex-wrap gap-1 mt-1">
+                ${(insights.top_skills || []).map(s => `<span class="job-skill-tag">${s}</span>`).join('')}
+            </div>
+        </div>`;
+
+    const sal = insights.avg_salary_range || {};
+    document.getElementById('salaryContent').innerHTML = `
+        <div class="text-center">
+            <div style="font-size:2rem;font-weight:700;" class="gradient-text">
+                $${(sal.min || 0).toLocaleString()} - $${(sal.max || 0).toLocaleString()}
+            </div>
+            <p class="text-muted mt-1">Average Annual Salary (USD)</p>
+        </div>`;
+}
+
+function displayJobs(data) {
+    const container = document.getElementById('jobsContainer');
+
+    if (!data.jobs || data.jobs.length === 0) {
+        container.innerHTML = '<div class="glass-card text-center"><p class="text-muted">No jobs found. Try different filters.</p></div>';
+        return;
+    }
+
+    let html = `<p class="text-muted mb-2">${data.total || data.jobs.length} job(s) found</p>`;
+    data.jobs.forEach(job => {
+        const salary = job.salary_min ? `$${job.salary_min.toLocaleString()} - $${(job.salary_max || 0).toLocaleString()}` : 'Not specified';
+        html += `
+            <div class="job-card glass-card animate-in">
+                <div class="job-title">${job.title}</div>
+                <div class="job-company">${job.company}</div>
+                <div class="job-meta">
+                    <span>&#128205; ${job.location}</span>
+                    <span>&#128176; ${salary}</span>
+                    <span>&#128197; ${job.source || 'Online'}</span>
+                </div>
+                <div class="job-desc">${job.description || ''}</div>
+                ${job.required_skills ? `
+                    <div class="job-skills">
+                        ${job.required_skills.map(s => `<span class="job-skill-tag">${s}</span>`).join('')}
+                    </div>` : ''}
+                ${job.url && job.url !== '#' ? `<a href="${job.url}" target="_blank" class="btn btn-sm btn-outline">Apply &#8594;</a>` : ''}
+            </div>`;
+    });
+
+    container.innerHTML = html;
+}
+</script>
+{% endblock %}
