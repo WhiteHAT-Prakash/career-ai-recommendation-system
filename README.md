@@ -1,4 +1,4 @@
-⭐ README Template (Copy Paste)
+
 # 🚀 Smart Career Recommendation System
 
 An **AI-powered career guidance platform** that analyzes user skills, interests, and academic background to recommend suitable career paths using **Machine Learning and NLP**.
